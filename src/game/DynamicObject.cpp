@@ -98,7 +98,7 @@ bool DynamicObject::Create(uint32 guidlow, Unit *caster, uint32 spellId, SpellEf
     SpellEntry const* spellProto = sSpellStore.LookupEntry(spellId);
     if (!spellProto)
     {
-        sLog.outError("DynamicObject (spell %u) not created. Spell not exist!", spellId, GetPositionX(), GetPositionY());
+        sLog.outError("DynamicObject (spell %u) not created. Spell not exist!", spellId);
         return false;
     }
 
@@ -158,7 +158,7 @@ void DynamicObject::Delete()
 void DynamicObject::Delay(int32 delaytime)
 {
     m_aliveDuration -= delaytime;
-    for(AffectedSet::iterator iter = m_affected.begin(); iter != m_affected.end(); )
+    for (GuidSet::iterator iter = m_affected.begin(); iter != m_affected.end(); )
     {
         Unit *target = GetMap()->GetUnit((*iter));
         if (target)

@@ -1456,13 +1456,13 @@ valid examples:
     std::istringstream reader(message);
     char buffer[256];
 
-    uint32 color;
+    uint32 color = 0;
 
-    ItemPrototype const* linkedItem;
-    Quest const* linkedQuest;
-    SpellEntry const *linkedSpell;
-    ItemRandomPropertiesEntry const* itemProperty;
-    ItemRandomSuffixEntry const* itemSuffix;
+    ItemPrototype const* linkedItem = NULL;
+    Quest const* linkedQuest = NULL;
+    SpellEntry const *linkedSpell= NULL;
+    ItemRandomPropertiesEntry const* itemProperty = NULL;
+    ItemRandomSuffixEntry const* itemSuffix = NULL;
 
     while(!reader.eof())
     {
@@ -1978,7 +1978,7 @@ void ChatHandler::FillMessageData( WorldPacket *data, WorldSession* session, uin
     *data << uint32(messageLength);
     *data << message;
     if(session != 0 && type != CHAT_MSG_REPLY && type != CHAT_MSG_DND && type != CHAT_MSG_AFK)
-        *data << uint8(session->GetPlayer()->chatTag());
+        *data << uint8(session->GetPlayer()->GetChatTag());
     else
         *data << uint8(0);
 }

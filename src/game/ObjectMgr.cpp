@@ -5017,7 +5017,7 @@ void ObjectMgr::LoadGraveyardZones()
             continue;
         }
 
-        if (team != TEAM_NONE && team != HORDE && team != ALLIANCE)
+        if (team != TEAM_BOTH_ALLOWED && team != HORDE && team != ALLIANCE)
         {
             sLog.outErrorDb("Table `game_graveyard_zone` has record for non player faction (%u), skipped.", team);
             continue;
@@ -5036,7 +5036,7 @@ void ObjectMgr::LoadGraveyardZones()
 WorldSafeLocsEntry const *ObjectMgr::GetClosestGraveYard(float x, float y, float z, uint32 MapId, Team team)
 {
     // search for zone associated closest graveyard
-    uint32 zoneId = sTerrainMgr.GetZoneId(MapId,x,y,z);
+    uint32 zoneId = sTerrainMgr.GetZoneId(MapId, x, y, z);
 
     // Simulate std. algorithm:
     //   found some graveyard associated to (ghost_zone,ghost_map)
@@ -5072,16 +5072,13 @@ WorldSafeLocsEntry const *ObjectMgr::GetClosestGraveYard(float x, float y, float
     {
         GraveYardData const& data = itr->second;
 
+        // Checked on load
         WorldSafeLocsEntry const* entry = sWorldSafeLocsStore.LookupEntry(data.safeLocId);
-        if(!entry)
-        {
-            sLog.outErrorDb("Table `game_graveyard_zone` has record for not existing graveyard (WorldSafeLocs.dbc id) %u, skipped.",data.safeLocId);
-            continue;
-        }
 
         // skip enemy faction graveyard
-        // team == 0 case can be at call from .neargrave
-        if (data.team != TEAM_NONE && team != TEAM_NONE && data.team != team)
+        // team == TEAM_BOTH_ALLOWED case can be at call from .neargrave
+        // TEAM_INVALID != team for all teams
+        if (data.team != TEAM_BOTH_ALLOWED && data.team != team && team != TEAM_BOTH_ALLOWED)
             continue;
 
         // find now nearest graveyard at other (continent) map
@@ -5161,7 +5158,7 @@ GraveYardData const* ObjectMgr::FindGraveYardData(uint32 id, uint32 zoneId) cons
 
 bool ObjectMgr::AddGraveYardLink(uint32 id, uint32 zoneId, Team team, bool inDB)
 {
-    if(FindGraveYardData(id,zoneId))
+    if (FindGraveYardData(id, zoneId))                      // This ensures that (safeLoc)Id,  zoneId is unique in mGraveYardMap
         return false;
 
     // add link to loaded data
@@ -5169,16 +5166,37 @@ bool ObjectMgr::AddGraveYardLink(uint32 id, uint32 zoneId, Team team, bool inDB)
     data.safeLocId = id;
     data.team = team;
 
-    mGraveYardMap.insert(GraveYardMap::value_type(zoneId,data));
+    mGraveYardMap.insert(GraveYardMap::value_type(zoneId, data));
 
     // add link to DB
-    if(inDB)
-    {
-        WorldDatabase.PExecuteLog("INSERT INTO game_graveyard_zone ( id,ghost_zone,faction) "
-            "VALUES ('%u', '%u','%u')", id, zoneId, uint32(team));
-    }
+    if (inDB)
+        WorldDatabase.PExecuteLog("INSERT INTO game_graveyard_zone ( id,ghost_zone,faction) VALUES ('%u', '%u','%u')", id, zoneId, uint32(team));
 
     return true;
+}
+
+void ObjectMgr::SetGraveYardLinkTeam(uint32 id, uint32 zoneId, Team team)
+{
+    std::pair<GraveYardMap::iterator, GraveYardMap::iterator> bounds = mGraveYardMap.equal_range(zoneId);
+
+    for (GraveYardMap::iterator itr = bounds.first; itr != bounds.second; ++itr)
+    {
+        GraveYardData& data = itr->second;
+
+        // skip not matching safezone id
+        if (data.safeLocId != id)
+            continue;
+
+        data.team = team;                                   // Validate link
+        return;
+    }
+
+    if (team == TEAM_INVALID)
+        return;
+
+    // Link expected but not exist.
+    sLog.outErrorDb("ObjectMgr::SetGraveYardLinkTeam called for safeLoc %u, zoneId &u, but no graveyard link for this found in database.", id, zoneId);
+    AddGraveYardLink(id, zoneId, team);                     // Add to prevent further error message and correct mechanismn
 }
 
 void ObjectMgr::LoadAreaTriggerTeleports()
@@ -6337,6 +6355,59 @@ void ObjectMgr::LoadPointsOfInterest()
     sLog.outString(">> Loaded %u Points of Interest definitions", count);
 }
 
+static char* SERVER_SIDE_SPELL      = "MaNGOS server-side spell";
+
+struct SQLSpellLoader : public SQLStorageLoaderBase<SQLSpellLoader>
+{
+    template<class S, class D>
+    void default_fill(uint32 field_pos, S src, D &dst)
+    {
+        if (field_pos == LOADED_SPELLDBC_FIELD_POS_EQUIPPED_ITEM_CLASS)
+            dst = D(-1);
+        else
+            dst = D(src);
+    }
+
+    void default_fill_to_str(uint32 field_pos, char const* /*src*/, char * & dst)
+    {
+        if (field_pos == LOADED_SPELLDBC_FIELD_POS_SPELLNAME_0)
+        {
+            dst = SERVER_SIDE_SPELL;
+        }
+        else
+        {
+            dst = new char[1];
+            *dst = 0;
+        }
+    }
+};
+
+void ObjectMgr::LoadSpellTemplate()
+{
+    SQLSpellLoader loader;
+    loader.Load(sSpellTemplate);
+
+    sLog.outString(">> Loaded %u spell definitions", sSpellTemplate.RecordCount);
+    sLog.outString();
+
+    for (uint32 i = 1; i < sSpellTemplate.MaxEntry; ++i)
+    {
+        // check data correctness
+        SpellEntry const* spellEntry = sSpellTemplate.LookupEntry<SpellEntry>(i);
+        if (!spellEntry)
+            continue;
+
+        // insert serverside spell data
+        if (sSpellStore.GetNumRows() <= i)
+        {
+            sLog.outErrorDb("Loading Spell Template for spell %u, index out of bounds (max = %)", i, sSpellStore.GetNumRows());
+            continue;
+        }
+        else
+            sSpellStore.InsertEntry(const_cast<SpellEntry*>(spellEntry), i);
+    }
+}
+
 void ObjectMgr::LoadWeatherZoneChances()
 {
     uint32 count = 0;
@@ -7073,6 +7144,9 @@ bool PlayerCondition::Meets(Player const * player) const
 
     switch (m_condition)
     {
+        case CONDITION_NOT:
+            // Checked on load
+            return !sConditionStorage.LookupEntry<PlayerCondition>(m_value1)->Meets(player);
         case CONDITION_OR:
             // Checked on load
             return sConditionStorage.LookupEntry<PlayerCondition>(m_value1)->Meets(player) || sConditionStorage.LookupEntry<PlayerCondition>(m_value2)->Meets(player);
@@ -7093,7 +7167,7 @@ bool PlayerCondition::Meets(Player const * player) const
             player->GetZoneAndAreaId(zone,area);
             return (zone == m_value1 || area == m_value1) == (m_value2 == 0);
         }
-        case CONDITION_REPUTATION_RANK:
+        case CONDITION_REPUTATION_RANK_MIN:
         {
             FactionEntry const* faction = sFactionStore.LookupEntry(m_value1);
             return faction && player->GetReputationMgr().GetRank(faction) >= ReputationRank(m_value2);
@@ -7246,6 +7320,11 @@ bool PlayerCondition::Meets(Player const * player) const
                 return !player->HasSkill(m_value1);
             else
                 return player->HasSkill(m_value1) && player->GetBaseSkillValue(m_value1) < m_value2;
+        case CONDITION_REPUTATION_RANK_MAX:
+        {
+            FactionEntry const* faction = sFactionStore.LookupEntry(m_value1);
+            return faction && player->GetReputationMgr().GetRank(faction) <= ReputationRank(m_value2);
+        }
         default:
             return false;
     }
@@ -7256,29 +7335,44 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
 {
     switch (condition)
     {
-        case CONDITION_OR:
-        case CONDITION_AND:
+        case CONDITION_NOT:
         {
             if (value1 >= entry)
             {
-                sLog.outErrorDb("And or Or condition (entry %u, type %d) has invalid value1 %u, must be lower than entry, skipped", entry, condition, value1);
-                return false;
-            }
-            if (value2 >= entry)
-            {
-                sLog.outErrorDb("And or Or condition (entry %u, type %d) has invalid value2 %u, must be lower than entry, skipped", entry, condition, value2);
+                sLog.outErrorDb("CONDITION_NOT (entry %u, type %d) has invalid value1 %u, must be lower than entry, skipped", entry, condition, value1);
                 return false;
             }
             const PlayerCondition* condition1 = sConditionStorage.LookupEntry<PlayerCondition>(value1);
             if (!condition1)
             {
-                sLog.outErrorDb("And or Or condition (entry %u, type %d) has value1 %u without proper condition, skipped", entry, condition, value1);
+                sLog.outErrorDb("CONDITION_NOT (entry %u, type %d) has value1 %u without proper condition, skipped", entry, condition, value1);
+                return false;
+            }
+            break;
+        }
+        case CONDITION_OR:
+        case CONDITION_AND:
+        {
+            if (value1 >= entry)
+            {
+                sLog.outErrorDb("CONDITION _AND or _OR (entry %u, type %d) has invalid value1 %u, must be lower than entry, skipped", entry, condition, value1);
+                return false;
+            }
+            if (value2 >= entry)
+            {
+                sLog.outErrorDb("CONDITION _AND or _OR (entry %u, type %d) has invalid value2 %u, must be lower than entry, skipped", entry, condition, value2);
+                return false;
+            }
+            const PlayerCondition* condition1 = sConditionStorage.LookupEntry<PlayerCondition>(value1);
+            if (!condition1)
+            {
+                sLog.outErrorDb("CONDITION _AND or _OR (entry %u, type %d) has value1 %u without proper condition, skipped", entry, condition, value1);
                 return false;
             }
             const PlayerCondition* condition2 = sConditionStorage.LookupEntry<PlayerCondition>(value2);
             if (!condition2)
             {
-                sLog.outErrorDb("And or Or condition (entry %u, type %d) has value2 %u without proper condition, skipped", entry, condition, value2);
+                sLog.outErrorDb("CONDITION _AND or _OR (entry %u, type %d) has value2 %u without proper condition, skipped", entry, condition, value2);
                 return false;
             }
             break;
@@ -7342,12 +7436,19 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
             }
             break;
         }
-        case CONDITION_REPUTATION_RANK:
+        case CONDITION_REPUTATION_RANK_MIN:
+        case CONDITION_REPUTATION_RANK_MAX:
         {
             FactionEntry const* factionEntry = sFactionStore.LookupEntry(value1);
             if (!factionEntry)
             {
                 sLog.outErrorDb("Reputation condition (entry %u, type %u) requires to have reputation non existing faction (%u), skipped", entry, condition, value1);
+                return false;
+            }
+
+            if (value2 >= MAX_REPUTATION_RANK)
+            {
+                sLog.outErrorDb("Reputation condition (entry %u, type %u) has invalid rank requirement (value2 = %u) - must be between %u and %u, skipped", entry, condition, value2, MIN_REPUTATION_RANK, MAX_REPUTATION_RANK-1);
                 return false;
             }
             break;
@@ -8196,7 +8297,7 @@ void ObjectMgr::LoadGossipMenuItems(std::set<uint32>& gossipScriptSet)
             if (itr->first)
                 menu_ids.insert(itr->first);
 
-        for(uint32 i = 1; i < sGOStorage.MaxEntry; ++i)
+        for (uint32 i = 1; i < sGOStorage.MaxEntry; ++i)
             if (GameObjectInfo const* gInfo = sGOStorage.LookupEntry<GameObjectInfo>(i))
                 if (uint32 menuid = gInfo->GetGossipMenuId())
                     menu_ids.erase(menuid);
@@ -8210,10 +8311,16 @@ void ObjectMgr::LoadGossipMenuItems(std::set<uint32>& gossipScriptSet)
     // prepare menuid -> CreatureInfo map for fast access
     typedef  std::multimap<uint32, const CreatureInfo*> Menu2CInfoMap;
     Menu2CInfoMap menu2CInfoMap;
-    for(uint32 i = 1;  i < sCreatureStorage.MaxEntry; ++i)
+    for (uint32 i = 1;  i < sCreatureStorage.MaxEntry; ++i)
         if (CreatureInfo const* cInfo = sCreatureStorage.LookupEntry<CreatureInfo>(i))
             if (cInfo->GossipMenuId)
+            {
                 menu2CInfoMap.insert(Menu2CInfoMap::value_type(cInfo->GossipMenuId, cInfo));
+
+                // unused check data preparing part
+                if (!sLog.HasLogFilter(LOG_FILTER_DB_STRICTED_CHECK))
+                    menu_ids.erase(cInfo->GossipMenuId);
+            }
 
     do
     {
@@ -8292,7 +8399,7 @@ void ObjectMgr::LoadGossipMenuItems(std::set<uint32>& gossipScriptSet)
         if (gMenuItem.option_id >= GOSSIP_OPTION_MAX)
             sLog.outErrorDb("Table gossip_menu_option for menu %u, id %u has unknown option id %u. Option will not be used", gMenuItem.menu_id, gMenuItem.id, gMenuItem.option_id);
 
-        if (gMenuItem.menu_id && (gMenuItem.npc_option_npcflag || !sLog.HasLogFilter(LOG_FILTER_DB_STRICTED_CHECK)))
+        if (gMenuItem.menu_id && gMenuItem.npc_option_npcflag)
         {
             bool found_menu_uses = false;
             bool found_flags_uses = false;
@@ -8307,10 +8414,6 @@ void ObjectMgr::LoadGossipMenuItems(std::set<uint32>& gossipScriptSet)
                 // some from creatures with gossip menu can use gossip option base at npc_flags
                 if (gMenuItem.npc_option_npcflag & cInfo->npcflag)
                     found_flags_uses = true;
-
-                // unused check data preparing part
-                if (!sLog.HasLogFilter(LOG_FILTER_DB_STRICTED_CHECK))
-                    menu_ids.erase(gMenuItem.menu_id);
             }
 
             if (found_menu_uses && !found_flags_uses)

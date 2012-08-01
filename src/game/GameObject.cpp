@@ -385,7 +385,7 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
 
                 if (spellId)
                 {
-                    for (GuidsSet::const_iterator itr = m_UniqueUsers.begin(); itr != m_UniqueUsers.end(); ++itr)
+                    for (GuidSet::const_iterator itr = m_UniqueUsers.begin(); itr != m_UniqueUsers.end(); ++itr)
                     {
                         if (Player* owner = GetMap()->GetPlayer(*itr))
                             owner->CastSpell(owner, spellId, false, NULL, NULL, GetObjectGuid());
@@ -399,10 +399,11 @@ void GameObject::Update(uint32 update_diff, uint32 /*p_time*/)
                 //any return here in case battleground traps
             }
 
-            if (GetOwnerGuid())
+            if (!HasStaticDBSpawnData())                    // Remove wild summoned after use
             {
-                if (Unit* owner = GetOwner())
-                    owner->RemoveGameObject(this, false);
+                if (GetOwnerGuid())
+                    if (Unit* owner = GetOwner())
+                        owner->RemoveGameObject(this, false);
 
                 SetRespawnTime(0);
                 Delete();
@@ -960,6 +961,8 @@ void GameObject::Use(Unit* user)
     }
 
     bool scriptReturnValue = user->GetTypeId() == TYPEID_PLAYER && sScriptMgr.OnGameObjectUse((Player*)user, this);
+    if (!scriptReturnValue)
+        GetMap()->ScriptsStart(sGameObjectTemplateScripts, GetEntry(), spellCaster, this);
 
     switch (GetGoType())
     {
