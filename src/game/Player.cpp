@@ -5828,7 +5828,7 @@ void Player::CheckAreaExploreAndOutdoor()
         return;
     int offset = areaFlag / 32;
 
-    if (isOutdoor)
+    if (offset >= PLAYER_EXPLORED_ZONES_SIZE)
     {
         sLog.outError("Wrong area flag %u in map data for (X: %f Y: %f) point to field PLAYER_EXPLORED_ZONES_1 + %u ( %u must be < %u ).",areaFlag,GetPositionX(),GetPositionY(),offset,offset, PLAYER_EXPLORED_ZONES_SIZE);
         return;
