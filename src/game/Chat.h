@@ -569,6 +569,7 @@ protected:
     bool HandleRepairitemsCommand(char* args);
     bool HandleStableCommand(char* args);
     bool HandleWaterwalkCommand(char* args);
+    bool HandlePlayerbotCommand(char* args);
     bool HandleQuitCommand(char* args);
 
     bool HandleMmapPathCommand(char* args);
