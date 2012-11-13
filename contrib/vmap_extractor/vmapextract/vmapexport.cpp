@@ -65,6 +65,7 @@ typedef struct
 } map_id;
 
 map_id* map_ids;
+uint16* LiqType = 0;
 uint32 map_count;
 char output_path[128] = ".";
 char input_path[1024] = ".";
@@ -536,6 +537,7 @@ int main(int argc, char** argv)
         getchar();
     }
 
-    printf("Extract %s. Work complete. No errors.\n", versionString);
+    printf("Extract for %s. Work complete. No errors.\n", szRawVMAPMagic);
+    delete [] LiqType;
     return 0;
 }

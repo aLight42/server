@@ -1741,7 +1741,7 @@ void GameObject::SetLootState(LootState state)
 
 void GameObject::SetGoState(GOState state)
 {
-    SetByteValue(GAMEOBJECT_BYTES_1, 0, state);
+    SetByteValue(GAMEOBJECT_STATE, 0, state);
     UpdateCollisionState();
 }
 
@@ -1752,18 +1752,12 @@ void GameObject::SetDisplayId(uint32 modelId)
     UpdateModel();
 }
 
-void GameObject::SetPhaseMask(uint32 newPhaseMask, bool update)
-{
-    WorldObject::SetPhaseMask(newPhaseMask, update);
-    UpdateCollisionState();
-}
-
 void GameObject::UpdateCollisionState() const
 {
     if (!m_model || !IsInWorld())
         return;
 
-    m_model->enable(IsCollisionEnabled() ? GetPhaseMask() : 0);
+    m_model->enable(IsCollisionEnabled() ? true : false);
 }
 
 void GameObject::UpdateModel()

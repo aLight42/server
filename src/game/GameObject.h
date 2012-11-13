@@ -661,7 +661,6 @@ public:
     void SetGoAnimProgress(uint32 animprogress) { SetUInt32Value(GAMEOBJECT_ANIMPROGRESS, animprogress); }
     uint32 GetDisplayId() const { return GetUInt32Value(GAMEOBJECT_DISPLAYID); }
     void SetDisplayId(uint32 modelId);
-    void SetPhaseMask(uint32 newPhaseMask, bool update);
 
     float GetObjectBoundingRadius() const override;     // overwrite WorldObject version
 
@@ -738,7 +737,7 @@ protected:
     // For traps/goober this: spell casting cooldown, for doors/buttons: reset time.
 
     uint32      m_captureTimer;                         // (msecs) timer used for capture points
-    float       m_captureSlider;						// capture point slider value in range of [0..100]
+    float       m_captureSlider;                        // capture point slider value in range of [0..100]
     CapturePointState m_captureState;
 
     GuidSet m_SkillupSet;                               // players that already have skill-up at GO use
