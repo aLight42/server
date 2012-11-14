@@ -634,18 +634,18 @@ bool ConvertADT(char* filename, char* filename2, int cell_y, int cell_x)
             uint32 c_flag = cell->flags;
             if (c_flag & (1 << 2))
             {
-                liquid_entry[i][j] = 1;
+                liquid_entry[i][j] = 3;
                 liquid_flags[i][j] |= MAP_LIQUID_TYPE_WATER;            // water
             }
             if (c_flag & (1 << 3))
             {
-                liquid_entry[i][j] = 2;
+                liquid_entry[i][j] = 1;
                 liquid_flags[i][j] |= MAP_LIQUID_TYPE_OCEAN;            // ocean
             }
             if (c_flag & (1 << 4))
             {
-                liquid_entry[i][j] = 3;
-                liquid_flags[i][j] |= MAP_LIQUID_TYPE_MAGMA;            // magma/slime
+                liquid_entry[i][j] = 0;
+                liquid_flags[i][j] |= MAP_LIQUID_TYPE_MAGMA;            // magma/slime - ToDo: use different entries for this in the future (0 = Magma; 2 = Slime)
             }
 
             if (!count && liquid_flags[i][j])
