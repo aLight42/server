@@ -547,9 +547,9 @@ struct ItemSetEntry
 struct LiquidTypeEntry
 {
     uint32 Id;                                              // 0
-    //uint32 Flags;                                         // 1 Water: 1|2|4|8, Magma: 8|16|32|64, Slime: 2|64|256
-    uint32 Type;                                            // 2 0: Magma, 2: Slime, 3: Water
-    uint32 SpellId;                                         // 3 Reference to Spell.dbc
+    uint32 LiquidId;                                        // 1        1: Coilfang Raid - Water; 23: Water; 29: Ocean; 35: Magma; 41: Slime; 47: Naxxramas - Slime; 65: Hyjal Past - Water.
+    uint32 Type;                                            // 2        0: Magma; 2: Slime; 3: Water.
+    uint32 SpellId;                                         // 3        Reference to Spell.dbc
 };
 
 #define MAX_LOCK_CASE 8
