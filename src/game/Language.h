@@ -938,8 +938,10 @@ enum MangosStrings
     LANG_AHBOT_ITEMS_AMOUNT             = 1190,
     LANG_AHBOT_ITEMS_RATIO              = 1191,
     LANG_MOVEGENS_EFFECT                = 1192,
-    //                                    1193 used in master branch
-    // Room for more level 3              1194-1199 not used
+    //                                  = 1193 used in master branch
+    LANG_COMMAND_GO_STATUS              = 1194,
+    LANG_COMMAND_GO_STATUS_DOOR         = 1195,
+    // Room for more level 3              1196-1199 not used
 
     // Debug commands
     LANG_CINEMATIC_NOT_EXIST            = 1200,

@@ -569,6 +569,7 @@ enum CapturePointSlider
 };
 
 class Unit;
+class GameObjectModel;
 struct GameObjectDisplayInfoEntry;
 
 // 5 sec for bobber catch
@@ -653,7 +654,7 @@ public:
     GameobjectTypes GetGoType() const { return GameobjectTypes(GetUInt32Value(GAMEOBJECT_TYPE_ID)); }
     void SetGoType(GameobjectTypes type) { SetUInt32Value(GAMEOBJECT_TYPE_ID, type); }
     GOState GetGoState() const { return GOState(GetUInt32Value(GAMEOBJECT_STATE)); }
-    void SetGoState(GOState state) { SetUInt32Value(GAMEOBJECT_STATE, state); }
+    void SetGoState(GOState state);
     uint32 GetGoArtKit() const { return GetUInt32Value(GAMEOBJECT_ARTKIT); }
     void SetGoArtKit(uint32 artkit) { SetUInt32Value(GAMEOBJECT_ARTKIT, artkit); }
     uint32 GetGoAnimProgress() const { return GetUInt32Value(GAMEOBJECT_ANIMPROGRESS); }
@@ -666,7 +667,7 @@ public:
     void Use(Unit* user);
 
     LootState getLootState() const { return m_lootState; }
-    void SetLootState(LootState s) { m_lootState = s; }
+    void SetLootState(LootState s);
 
     void AddToSkillupList(Player* player);
     bool IsInSkillupList(Player* player) const;
@@ -716,11 +717,15 @@ public:
 
     bool isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool inVisibleList) const override;
 
+    bool IsCollisionEnabled() const;                    // Check if a go should collide. Like if a door is closed
+
     GameObject* LookupFishingHoleAround(float range);
 
     void SetCapturePointSlider(int8 value);
 
     GridReference<GameObject> &GetGridRef() { return m_gridRef; }
+
+    GameObjectModel* m_model;
 
 protected:
     uint32      m_spellId;
@@ -732,7 +737,7 @@ protected:
     // For traps/goober this: spell casting cooldown, for doors/buttons: reset time.
 
     uint32      m_captureTimer;                         // (msecs) timer used for capture points
-    float       m_captureSlider;
+    float       m_captureSlider;                        // capture point slider value in range of [0..100]
     CapturePointState m_captureState;
 
     GuidSet m_SkillupSet;                               // players that already have skill-up at GO use
@@ -756,7 +761,10 @@ protected:
 private:
     void SwitchDoorOrButton(bool activate, bool alternative = false);
     void TickCapturePoint();
+    void UpdateModel();                                 // updates model in case displayId were changed
+    void UpdateCollisionState() const;                  // updates state in Map's dynamic collision tree
 
     GridReference<GameObject> m_gridRef;
 };
+
 #endif
