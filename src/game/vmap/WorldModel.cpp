@@ -236,7 +236,10 @@ namespace VMAP
         liquid->iFlags = new uint8[size];
         if (result && fread(liquid->iFlags, sizeof(uint8), size, rf) != size) result = false;
         if (!result)
+        {
             delete liquid;
+            liquid = NULL;
+        }
         out = liquid;
         return result;
     }
