@@ -631,6 +631,7 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     uint32 unk2;
     uint32 BuiltNumberClient;
     uint8 expansion = 0;
+    uint8 xp_rate = 0;
     LocaleConstant locale;
     std::string account;
     Sha1Hash sha1;
@@ -767,6 +768,14 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
         return -1;
     }
 
+    // Check for custom xp rate
+    QueryResult* customXpResult = CharacterDatabase.PQuery ("SELECT xp_rate FROM account_xp_rates WHERE id = '%u'", id);
+    if (customXpResult)
+    {
+        Field* xpFields = customXpResult->Fetch();
+        xp_rate = xpFields[0].GetUInt8();
+    }
+
     // Check locked state for server
     AccountTypes allowedAccountType = sWorld.GetPlayerSecurityLimit();
 
@@ -819,7 +828,7 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     stmt.PExecute(address.c_str(), account.c_str());
 
     // NOTE ATM the socket is single-threaded, have this in mind ...
-    ACE_NEW_RETURN(m_Session, WorldSession(id, this, AccountTypes(security), expansion, mutetime, locale), -1);
+    ACE_NEW_RETURN(m_Session, WorldSession(id, this, AccountTypes(security), expansion, xp_rate, mutetime, locale), -1);
 
     m_Crypt.Init(&K);
 

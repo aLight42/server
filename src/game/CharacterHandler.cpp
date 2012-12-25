@@ -150,7 +150,7 @@ public:
 
         // The bot's WorldSession is owned by the bot's Player object
         // The bot's WorldSession is deleted by PlayerbotMgr::LogoutPlayerBot
-        WorldSession *botSession = new WorldSession(lqh->GetAccountId(), NULL, SEC_PLAYER, masterSession->Expansion(), 0, LOCALE_enUS);
+        WorldSession *botSession = new WorldSession(lqh->GetAccountId(), NULL, SEC_PLAYER, masterSession->Expansion(), masterSession->GetXpRate(), 0, LOCALE_enUS);
         botSession->m_Address = "bot";
         botSession->HandlePlayerLogin(lqh); // will delete lqh
         masterSession->GetPlayer()->GetPlayerbotMgr()->OnBotLogin(botSession->GetPlayer());

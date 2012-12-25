@@ -148,7 +148,7 @@ class MANGOS_DLL_SPEC WorldSession
     friend class CharacterHandler;
 
 public:
-    WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale);
+    WorldSession(uint32 id, WorldSocket* sock, AccountTypes sec, uint8 expansion, uint8 xp_rate, time_t mute_time, LocaleConstant locale);
     ~WorldSession();
 
     bool PlayerLoading() const { return m_playerLoading; }
@@ -174,6 +174,7 @@ public:
     std::string const& GetRemoteAddress() { return m_Address; }
     void SetPlayer(Player* plr) { _player = plr; }
     uint8 Expansion() const { return m_expansion; }
+    uint8 GetXpRate() const { return m_xp_rate; }
 
     void InitWarden(BigNumber *K, std::string os);
 
@@ -765,6 +766,7 @@ private:
     AccountTypes _security;
     uint32 _accountId;
     uint8 m_expansion;
+    uint8 m_xp_rate;
 
     // Warden
     WardenBase *m_Warden;

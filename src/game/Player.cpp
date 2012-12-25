@@ -5912,7 +5912,8 @@ void Player::CheckAreaExploreAndOutdoor()
                 uint32 XP = 0;
                 if (diff < -5)
                 {
-                    XP = uint32(sObjectMgr.GetBaseXP(getLevel() + 5) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
+                    // Use custom xp rate if set
+                    XP = uint32(sObjectMgr.GetBaseXP(getLevel() + 5) * (GetSession()->GetXpRate() != 0 ? GetSession()->GetXpRate() : sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE)));
                 }
                 else if (diff > 5)
                 {
@@ -5922,11 +5923,13 @@ void Player::CheckAreaExploreAndOutdoor()
                     else if (exploration_percent < 0)
                         exploration_percent = 0;
 
-                    XP = uint32(sObjectMgr.GetBaseXP(p->area_level) * exploration_percent / 100 * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
+                    // Use custom xp rate if set
+                    XP = uint32(sObjectMgr.GetBaseXP(p->area_level) * exploration_percent / 100 * (GetSession()->GetXpRate() != 0 ? GetSession()->GetXpRate() : sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE)));
                 }
                 else
                 {
-                    XP = uint32(sObjectMgr.GetBaseXP(p->area_level) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
+                    // Use custom xp rate if set
+                    XP = uint32(sObjectMgr.GetBaseXP(p->area_level) * (GetSession()->GetXpRate() != 0 ? GetSession()->GetXpRate() : sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE)));
                 }
 
                 GiveXP(XP, NULL);
@@ -13379,7 +13382,8 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
     QuestStatusData& q_status = mQuestStatus[quest_id];
 
     // Used for client inform but rewarded only in case not max level
-    uint32 xp = uint32(pQuest->XPValue(this) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST));
+    // Use custom xp rate if set
+    uint32 xp = uint32(pQuest->XPValue(this) * (GetSession()->GetXpRate() != 0 ? GetSession()->GetXpRate() : sWorld.getConfig(CONFIG_FLOAT_RATE_XP_QUEST)));
 
     if (getLevel() < sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         GiveXP(xp , NULL);
